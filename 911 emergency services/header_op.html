@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>911 Location Search (Faster)</title>
+  <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+
+</head>
+
+<body bgcolor="f2f2f2">
+  <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+  <script type="text/javascript" src="js/materialize.min.js"></script>
+  <nav class="white" role="navigation">
+    <div class="nav-wrapper container">
+      <a id="logo-container" class="brand-logo"><img src="images/logo.png" style="width:350px;height:60px"></a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="details.php">Job Details</a></li>
+        <li><a href="changepass.php">Change password</a></li>
+        <ul class=" dropdown-content" id="dropdown1">
+          <li><a href="marking_firestation.php">Fire Stations</a></li>
+          <li><a href="marking_police.php">Police Stations</a></li>
+          <li><a href="marking_hospital.php">Hospitals</a></li>
+        </ul>
+        <li>
+          <a class="dropdown-button" href="#!" data-activates="dropdown1">Find Nearby Service Stations
+            <i class="material-icons right">arrow_drop_down</i>
+          </a>
+        </li>
+        <li><a href="destroy.php">Log-Out</a></li>
+      </ul>
+    </div>
+  </nav>

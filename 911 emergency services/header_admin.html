@@ -1,0 +1,291 @@
+<!--DONE-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>9-1-1  Emergency Services</title>
+  <!-- CSS  -->
+  <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="css/speech-input.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+
+  <!-- js --->
+  <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+  <script type="text/javascript" src="js/materialize.js"></script>
+  <script src="js/init.js"></script>
+  <!--<script type="text/javascript" src="js/speech-input.js"></script>
+  <script async defer src="https://buttons.github.io/buttons.js"></script>-->
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="js/artyom.min.js"></script>
+
+<script>
+
+artyom.initialize({
+    lang:"en", // GreatBritain english
+    continuous:false, // Listen forever
+    soundex:true,// Use the soundex algorithm to increase accuracy
+    debug:true, // Show messages in the console
+    executionKeyword: "and do it now",
+    listen:true // Start to listen commands !
+
+});
+
+function initialize(){
+  artyom.initialize({
+      lang:"en", // GreatBritain english
+      continuous:false, // Listen forever
+      soundex:true,// Use the soundex algorithm to increase accuracy
+      debug:true, // Show messages in the console
+      executionKeyword: "and do it now",
+      listen:true // Start to listen commands !
+
+  });
+}
+
+    // Add command (Short code artisan way)
+    artyom.on(['Good morning','Good afternoon']).then(function(i){
+        switch (i) {
+            case 0:
+                artyom.say("Good morning, how are you?");
+            break;
+            case 1:
+                artyom.say("Good afternoon, how are you?");
+            break;
+        }
+    });
+
+    // Smart command (Short code artisan way), set the second parameter of .on to true
+  //  artyom.on(['Repeat after me *'] , true).then(function(i,wildcard){
+    //    artyom.say("You've said : " + wildcard);
+  //  });
+
+    // or add some commands in the normal way
+
+    artyom.addCommands([
+        {
+            indexes: ['Add Service'],
+            action: function(i){
+                artyom.say("Redirected !");
+                artyom.initialize({
+                    lang:"en", // GreatBritain english
+                    continuous:false, // Listen forever
+                    soundex:true,// Use the soundex algorithm to increase accuracy
+                    debug:true, // Show messages in the console
+                    executionKeyword: "and do it now",
+                    listen:true // Start to listen commands !
+
+                });
+                window.location.href = 'addservice.php';
+
+            }
+        },
+        {
+            indexes: ['Repeat after me *'],
+           smart:true,
+            action: function(i,wildcard){
+                artyom.say("You've said : "+ wildcard);
+            }
+        },
+        {
+            indexes: ['Entry Form', 'Form'],
+            action: function(i){
+                artyom.say("Redirected !");
+                artyom.initialize({
+                    lang:"en", // GreatBritain english
+                    continuous:false, // Listen forever
+                    soundex:true,// Use the soundex algorithm to increase accuracy
+                    debug:true, // Show messages in the console
+                    executionKeyword: "and do it now",
+                    listen:true // Start to listen commands !
+
+                });
+                window.location.href = 'form.php';
+
+            }
+        },
+        {
+            indexes: ['Locate Hospitals'],
+            action: function(i){
+                artyom.say("Successfully Located All Pune Hospitals And Clinics");
+                artyom.initialize({
+                    lang:"en", // GreatBritain english
+                    continuous:false, // Listen forever
+                    soundex:true,// Use the soundex algorithm to increase accuracy
+                    debug:true, // Show messages in the console
+                    executionKeyword: "and do it now",
+                    listen:true // Start to listen commands !
+
+                });
+                window.location.href = 'marking_hospital.php';
+
+            }
+        },
+        {
+            indexes: ['Locate Firestations'],
+            action: function(i){
+                artyom.say("Done ! is there Any fire outbreak recently ?");
+                artyom.initialize({
+                    lang:"en", // GreatBritain english
+                    continuous:false, // Listen forever
+                    soundex:true,// Use the soundex algorithm to increase accuracy
+                    debug:true, // Show messages in the console
+                    executionKeyword: "and do it now",
+                    listen:true // Start to listen commands !
+
+                });
+                window.location.href = 'marking_firestation.php';
+
+            }
+        },
+        {
+            indexes: ['Locate Police Stations'],
+            action: function(i){
+                artyom.say("Pin pointed all police stations !");
+                artyom.initialize({
+                    lang:"en", // GreatBritain english
+                    continuous:false, // Listen forever
+                    soundex:true,// Use the soundex algorithm to increase accuracy
+                    debug:true, // Show messages in the console
+                    executionKeyword: "and do it now",
+                    listen:true // Start to listen commands !
+
+                });
+                window.location.href = 'marking_police.php';
+
+            }
+        },
+        {
+            indexes: ['Analysis'],
+            action: function(i){
+                artyom.say("Computation done with Graph Plotting !");
+                artyom.initialize({
+                    lang:"en", // GreatBritain english
+                    continuous:false, // Listen forever
+                    soundex:true,// Use the soundex algorithm to increase accuracy
+                    debug:true, // Show messages in the console
+                    executionKeyword: "and do it now",
+                    listen:true // Start to listen commands !
+
+                });
+                window.location.href = 'analysis.php';
+
+            }
+        },
+        {
+          description:"Say what time is it",
+          indexes:['what time is it'],
+          action:function(){
+           var currentdate = new Date();
+           var datetime = "About the date : " + (currentdate.getMonth()+1)  + "/"
+                + currentdate.getDate() + "/"
+                + currentdate.getFullYear() + " @ "
+                + currentdate.getHours() + ":"
+                + currentdate.getMinutes() + ":"
+                + currentdate.getSeconds();
+            artyom.say(datetime);
+            artyom.initialize({
+                lang:"en", // GreatBritain english
+                continuous:false, // Listen forever
+                soundex:true,// Use the soundex algorithm to increase accuracy
+                debug:true, // Show messages in the console
+                executionKeyword: "and do it now",
+                listen:true // Start to listen commands !
+
+            });
+          }
+        },
+        {
+            indexes: ['Reload Chart'],
+            action: function(i){
+                artyom.say("Chart Reloaded!");
+                $('.reload').fadeOut('fast', function() {
+                    $(this).load('/911/form.php/', function() {
+                        $(this).fadeIn('fast');
+                    });
+                });
+                artyom.initialize({
+                    lang:"en", // GreatBritain english
+                    continuous:true, // Listen forever
+                    soundex:true,// Use the soundex algorithm to increase accuracy
+                    debug:true, // Show messages in the console
+                    executionKeyword: "and do it now",
+                    listen:true // Start to listen commands !
+                });
+
+
+            }
+        }
+    ]);
+  /*  artyom.redirectRecognizedTextOutput(function(text,isFinal){
+      var span = document.getElementById('output');
+
+      if(isFinal){
+        span.innerHTML = '';
+      }else {
+        span.innerHTML = text;
+      }
+    })*/
+    // Start the commands !
+
+</script>
+  <!--<script src="js/annyang.min.js"></script>
+
+
+  <script>
+  window.onload = function(){
+      if (annyang) {
+          var commands = {
+              'Hello': function() {
+
+                  alert('Hi! I can hear you.');
+
+              },
+              'Add Service': function() {
+window.location.href = 'addservice.php';
+              },
+              'Analysis': function() {
+window.location.href = 'analysis.php';
+              },
+              'Locate Hospitals': function() {
+window.location.href = 'marking_hospital.php';
+              },
+              'Entry Form': function() {
+window.location.href = 'form.php';
+              }
+          };
+          annyang.addCommands(commands);
+          annyang.start();
+      }
+  }
+</script>-->
+
+</head>
+
+<body bgcolor="f2f2f2">
+  <nav class="white" role="navigation">
+    <div class="nav-wrapper container">
+      <a id="logo-container" class="brand-logo">
+        <img src="images/logo.png" onclick="initialize()" style="width:350px;height:60px">
+      </a>
+
+      <ul class="right hide-on-med-and-down">
+
+        <li><a href="demo.php">Demo Video</a></li>
+        <li><a href="addservice.php">Add Service</a></li>
+        <li><a href="analysis.php">Analysis</a></li>
+        <li><a href="form.php">Entry Form</a></li>
+        <ul class=" dropdown-content" id="dropdown1">
+          <li><a href="marking_firestation.php">Fire Stations</a></li>
+          <li><a href="marking_police.php">Police Stations</a></li>
+          <li><a href="marking_hospital.php">Hospitals</a></li>
+        </ul>
+        <li>
+          <a class="dropdown-button" href="#!" data-activates="dropdown1">Find Nearby Service Stations
+            <i class="material-icons right">arrow_drop_down</i>
+          </a>
+        </li>
+        <li><a href="destroy.php">Log-Out</a></li>
+      </ul>
+    </div>
+  </nav>

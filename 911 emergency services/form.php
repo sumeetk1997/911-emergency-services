@@ -1,0 +1,568 @@
+<?php
+session_start();
+
+if ($_SESSION['user']!='admin')
+{
+header('Location: index.php');
+}
+  include_once 'header_admin.html';
+  include 'config.php';
+
+  function vehicle_count ($servicetype,$available)
+  {
+    $mongo = new MongoClient();
+    $db = $mongo->emergency;
+    $ops=array(array('$unwind'=>'$vehicles'),
+               array('$match'=>array('description'=>$servicetype,'vehicles.available'=>$available,'vehicles.verified'=>TRUE)),
+               array('$group' =>array('_id' =>NULL,'count'=>array('$sum'=>1) )));
+    $cur=$db->service->aggregate($ops);
+    $curs=$cur['result'];
+    foreach ($curs as $doc)
+    {
+      $count = $doc['count'];
+    }
+    return $count;
+  }
+
+  $count_a_na=vehicle_count("ambulance",FALSE);
+  $count_a=vehicle_count("ambulance",TRUE);
+
+  $count_p_na=vehicle_count('police',FALSE);
+  $count_p=vehicle_count('police',TRUE);
+
+  $count_f_na=vehicle_count('firebrigade',FALSE);
+  $count_f=vehicle_count('firebrigade',TRUE);
+
+
+?>
+<!--Load the AJAX API-->
+
+<script type="text/javascript">
+  // Load the Visualization API and the corechart package.
+  google.charts.load('current', {'packages':['corechart']});
+  // Set a callback to run when the Google Visualization API is loaded.
+  google.charts.setOnLoadCallback(drawChart1);
+  google.charts.setOnLoadCallback(drawChart2);
+  google.charts.setOnLoadCallback(drawChart3);
+  // Callback that creates and populates a data table,
+  // instantiates the pie chart, passes in the data and
+  // draws it.
+  function drawChart1()
+  {
+    // Create the data table.
+    var data1 = new google.visualization.DataTable();
+	  var count_a = parseFloat("<?php echo $count_a; ?>");
+	  var count_a_na = parseFloat("<?php echo $count_a_na; ?>");
+    data1.addColumn('string', 'Availibility');
+    data1.addColumn('number', 'Number');
+    data1.addRows([
+          ['Available Ambulance', count_a],
+          ['Unavailable Ambulance', count_a_na],
+          ]);
+    // Set chart options
+    var options1 = {'title':'Ambulance Availability Chart',
+                    colors: ['#1df734','#696969'],
+                    'width':400,
+                    'height':300,
+			              is3D: true,
+			              pieStartAngle: 30
+                  };
+    // Instantiate and draw our chart, passing in some options.
+    var chart = new google.visualization.PieChart(document.getElementById('chart_div1'));
+    chart.draw(data1, options1);
+  }
+
+	function drawChart2()
+  {
+    // Create the data table.
+    var data2 = new google.visualization.DataTable();
+	  var count_p = parseFloat("<?php echo $count_p; ?>");
+	  var count_p_na = parseFloat("<?php echo $count_p_na; ?>");
+    data2.addColumn('string', 'Availibility');
+    data2.addColumn('number', 'Number');
+    data2.addRows([
+          ['Available Police Vans', count_p],
+          ['Unavailable Police Vans', count_p_na],
+        ]);
+    // Set chart options
+    var options2 = {'title':'Police Vans Availability Chart',
+                     colors: [ '#3346ff', '#696969'],
+                    'width':400,
+                    'height':300,
+			              is3D: true,
+			              pieStartAngle: 30
+                  };
+    // Instantiate and draw our chart, passing in some options.
+    var chart2 = new google.visualization.PieChart(document.getElementById('chart_div2'));
+    chart2.draw(data2, options2);
+  }
+
+	function drawChart3()
+  {
+    // Create the data table.
+    var data3 = new google.visualization.DataTable();
+    var count_f = parseFloat("<?php echo $count_f; ?>");
+	  var count_f_na = parseFloat("<?php echo $count_f_na; ?>");
+    data3.addColumn('string', 'Availibility');
+    data3.addColumn('number', 'Number');
+    data3.addRows([
+          ['Available Fire-Brigade', count_f],
+          ['Unavailable Fire-Brigade', count_f_na],
+        ]);
+    // Set chart options
+    var options3 = {'title':'Fire Brigade Availability Chart',
+                    colors: ['#ff0000','#696969'],
+                    'width':400,
+                    'height':300,
+			              is3D: true,
+			              pieStartAngle: 30
+                  };
+    // Instantiate and draw our chart, passing in some options.
+    var chart3 = new google.visualization.PieChart(document.getElementById('chart_div3'));
+    chart3.draw(data3, options3);
+  }
+</script>
+<?php
+  if(isset($_POST['submit']))
+  {
+	  $name	= $_POST['form-demo-name'];
+	  $gender	= $_POST['gender'];
+ 	  $telephone = $_POST['form-demo-phone'];
+	  $servicetype	= $_POST['servicetype'];
+	  $latitude = $_POST['setting_latitude'];
+	  $longitude = $_POST['setting_longitude'];
+	  $pincode = $_POST['setting_postal_code'];
+    $keyword= $_POST['keyword'];
+    $_SESSION['reason'] = $keyword;
+    $collection = $db -> service ;
+    $service_db = $collection->findOne(array("description"=>$servicetype));
+    if($service_db != NULL)
+    {
+      $assigned_vehicle = NULL;
+      foreach ($service_db['vehicles'] as $vehicle)
+      {
+        if($vehicle['available']==TRUE && $vehicle['verified']==TRUE)
+        {
+          if ($assigned_vehicle == NULL || abs($pincode - $assigned_vehicle['service_area_pincode']) > abs($vehicle['service_area_pincode'] - $pincode))
+          {
+            $assigned_vehicle = $vehicle;
+          }
+        }
+      }
+
+      $timestamp = new DateTime();
+      $log = array("_id"=>new MongoId(),"name" => $name,"gender" => $gender ,"telephone" => $telephone ,
+              "pincode" => $pincode,"servicetype" => $servicetype,
+              "reason"=>$keyword,
+              "assigned_vehiclenumber" =>$assigned_vehicle["vehiclenumber"],
+              "coordinates"=>array("dest_latitude" => $latitude,"dest_longitude" => $longitude),
+              "estimated_duration"=>NULL,
+              "Deploy_Timestamp" =>$timestamp,
+              "Reached_Timestamp" =>NULL,
+              "Release_Timestamp" =>NULL
+            );
+      $collection->update(array("description"=>"log_details"),
+                            array('$push'=>array("servicelog" => $log)),
+                            array('upsert'=>TRUE));
+      $collection->update(array('vehicles.username'=>$assigned_vehicle['username']),array('$set'=>array('vehicles.$.available' => FALSE)));
+      $_SESSION['Deploy_Timestamp']=$timestamp;
+      $_SESSION['vehiclenumber']=$assigned_vehicle['vehiclenumber'];
+      $_SESSION['servicetype']=$servicetype;
+      $_SESSION['latitude']=$assigned_vehicle['coordinates']['latitude'];
+      $_SESSION['longitude']=$assigned_vehicle['coordinates']['longitude'];
+      $_SESSION['test'] =FALSE;
+      ?>
+		  <script src="js/sweetalert.min.js"></script>
+		  <link rel="stylesheet" type="text/css" href="css/sweetalert.css">
+		  <script>
+			swal({title:"Good job!",text:"Data Successfully Entered",type:"success"},function(){window.location.href = 'personservice.php';});
+		  </script>
+      <?php
+    }
+    else
+    {
+      ?>
+    	<script src="js/sweetalert.min.js"></script>
+    	<link rel="stylesheet" type="text/css" href="css/sweetalert.css">
+    	<script>
+    	swal({title:"Error!",text:"No Vehicle Currently Available !",type:"error"},function(){window.location.href = 'form.php';});
+    	</script>
+    	<?php
+    }
+  }
+?>
+<!--
+<script>
+var auto_refresh = setInterval(function () {
+    $('.reload').fadeOut('fast', function() {
+        $(this).load('/911/form.php/', function() {
+            $(this).fadeIn('fast');
+        });
+    });
+}, 150000); // refresh
+</script>-->
+
+<div class="col l12">
+	<div class="row">
+    <!-- FOR CALLING IN PIE CHART CONSTRUCTION -->
+		<div class="card" style="width: 25%; height: 1000px; float:left; margin : 20px;" >
+			<div class="card-content black-text">
+				<div class="row" style="margin-left:60px;">
+					<span class="card-title black-text">Availability Details</span>
+				</div>
+   			<div class="reload" id="chart_div1" style="height:33%;"></div>
+				<div class="reload" id="chart_div2"></div>
+				<div class="reload" id="chart_div3"></div>
+			</div>
+		</div>
+		<div class="card" style="width: 45%; height: 100%; float:left; margin : 20px;" >
+			<div class="card-content black-text">
+
+				<div class="row">
+					<span class="card-title black-text">Person Details</span>
+          <center>
+          <input id="form-demo-voice" type="submit" value="" style="background-image: url('images/mic.jpg');  background-repeat: no-repeat;
+          background-position: 50% 50%;height: 56px;
+          width: 56px;border:none;"/>
+        </center>
+				</div>
+
+
+
+        <div class="row">
+          <form class="col s12"  method="POST">
+
+        <div class="row">
+          <div class="input-field col s6">
+            <i class="material-icons prefix">account_circle</i>
+            <label for="form-demo-name" data-question="What's your name?"></label>
+            <input name= "form-demo-name" id="form-demo-name" placeholder="Name" length="18"/>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="input-field col s4">
+            <i class="material-icons prefix">phone</i>
+            <label for="form-demo-phone" data-question="What's your phone number?"></label>
+            <input name="form-demo-phone" id="form-demo-phone" placeholder="Phone Number" type="tel" class="validate" length="12"/>
+          </div>
+        </div>
+
+
+        <div id="container" class = row>
+          <div class="input-field col s9">
+            <i class="material-icons prefix">location_on</i>
+            <label for="form-demo-location" data-question="Locate Yourself"></label>
+            <input type="text" name="location" id="form-demo-location" class="location">
+          </div>
+        </div>
+
+
+
+             <div class="spinner-wrapper hidden">
+                <div class="spinner"></div>
+             </div>
+
+     <script >
+      document.getElementById('form-demo-voice').addEventListener('click', function(event) {
+         event.preventDefault();
+
+         var spinner = document.getElementsByClassName('spinner-wrapper')[0];
+         var fieldLabels = [].slice.call(document.querySelectorAll('label'));
+         var promise = new Promise(function(resolve) {
+            resolve();
+         });
+
+         var formData = function(i) {
+            return promise.then(function() {
+                       return Speech.speak(fieldLabels[i].dataset.question);
+                    })
+                    .then(function() {
+                       spinner.classList.remove('hidden');
+                       return Speech.recognize().then(function(text) {
+                          spinner.classList.add('hidden');
+                          document.getElementById(fieldLabels[i].getAttribute('for')).value = text;
+                       });
+                    });
+         };
+
+         for(var i = 0; i < 3; i++) {
+            promise = formData(i);
+         }
+
+         promise.then(function() {
+           artyom.initialize({
+               lang:"en", // GreatBritain english
+               continuous:false, // Listen forever
+               soundex:true,// Use the soundex algorithm to increase accuracy
+               debug:true, // Show messages in the console
+               executionKeyword: "and do it now",
+               listen:true // Start to listen commands !
+           });
+            return Speech.speak('Thank you for filling the form!');
+         })
+         .catch(function(error) {
+           spinner.classList.add('hidden');
+           alert(error);
+         });
+      });
+
+
+      /* SUPPORT OBJECT */
+      var Speech = {
+         speak: function(text) {
+            return new Promise(function(resolve, reject) {
+               if (!SpeechSynthesisUtterance) {
+                  reject('API not supported');
+               }
+
+               var utterance = new SpeechSynthesisUtterance(text);
+
+               utterance.addEventListener('end', function() {
+                  console.log('Synthesizing completed');
+                  resolve();
+               });
+
+               utterance.addEventListener('error', function (event) {
+                  console.log('Synthesizing error');
+                  reject('An error has occurred while speaking: ' + event.error);
+               });
+
+               console.log('Synthesizing the text: ' + text);
+               speechSynthesis.speak(utterance);
+            });
+         },
+         recognize: function() {
+            return new Promise(function(resolve, reject) {
+               var SpeechRecognition = SpeechRecognition        ||
+                                       webkitSpeechRecognition  ||
+                                       null;
+
+               if (SpeechRecognition === null) {
+                  reject('API not supported');
+               }
+
+               var recognizer = new SpeechRecognition();
+
+               recognizer.addEventListener('result', function (event) {
+                  console.log('Recognition completed');
+                  for (var i = event.resultIndex; i < event.results.length; i++) {
+                     if (event.results[i].isFinal) {
+                        resolve(event.results[i][0].transcript);
+                     }
+                  }
+               });
+
+               recognizer.addEventListener('error', function (event) {
+                  console.log('Recognition error');
+                  reject('An error has occurred while recognizing: ' + event.error);
+               });
+
+               recognizer.addEventListener('nomatch', function (event) {
+                  console.log('Recognition ended because of nomatch');
+                  reject('Error: sorry but I could not find a match');
+               });
+
+               recognizer.addEventListener('end', function (event) {
+                  console.log('Recognition ended');
+                  reject('Error: sorry but I could not recognize your speech');
+               });
+
+               console.log('Recognition started');
+               recognizer.start();
+            });
+         }
+      };
+    </script>
+
+
+            <div class="row" style="margin-left : 15px" >
+              <b>Gender   :  </b>
+              <input name="gender" class="with-gap" type="radio" id="m" value="Male">
+              <label for="m">Male</label>
+              <input name="gender" class="with-gap" type="radio" id="f" value="Female">
+              <label for="f">Female</label>
+            </div>
+
+
+					  <div class="row" style="margin-left : 15px">
+						  <div>
+						    <b>Choose Service :</b>
+                <br><br>
+                <div>
+                <input name="servicetype" class="with-gap" type="radio" id="ambulance" value="ambulance" >
+						    <label for="ambulance">Ambulance</label>
+
+                <div class="reveal-if-active">
+
+                  <select  class="browser-default"name="keyword">
+                  <option value=""disabled selected>Choose category of your symptoms</option>
+                  <option value="Burns">Burns</option>
+                  <option value="Choking">Choking</option>
+                  <option value="Heart attack">Heart Attack</option>
+                  <option value="Drowning">Drowning</option>
+                  <!--<option value="seizures">Seizures </option>
+                  <option value="electric shock">Electric Shock</option>
+                  <option value="fainting">Fainting</option>
+                  <option value="hypothermia">Hypthermia</option>
+                  <option value="heat stroke">Heat Stroke</option>
+                  <option value="sudden collapse">Sudden Collapse</option>
+                  <option value="snakbite">Snake bites</option>
+                  <option value="spinal cord injury">Spinal Cord Injury</option>
+                  <option value="road accidents">Road Accidents</option>
+                  <option value="13">Other</option>-->
+                  </select>
+                </div>
+
+                </div>
+
+              <div>
+						    <input name="servicetype" class="with-gap" type="radio" id="police" value="police" >
+						    <label for="police">Police</label>
+
+                <div class="reveal-if-active">
+
+                  <select  class="browser-default"name="keyword">
+                 <option value=""disabled selected>Choose category of your symptoms</option>
+                 <option value="Theft">Theft</option>
+                 <option value="Murder">Murder</option>
+                 <option value="3">Other</option>
+                 </select>
+
+               </div>
+             </div>
+
+             <div>
+						    <input name="servicetype" class="with-gap" type="radio" id="firebrigade" value="firebrigade" >
+						    <label for="firebrigade">Fire-Brigade</label>
+                <div class="reveal-if-active">
+
+                  <select  class="browser-default"name="keyword">
+                <option value=""disabled selected>Choose category of your symptoms</option>
+                <option value="Fire">Fire</option>
+                <option value="Other">Other</option>
+                </select>
+              </div>
+					 	  </div>
+            </div>
+            </div>
+
+              <br>
+					    <script src="./js/jquery.min.js"></script>
+					    <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCDREgelhcPpigBLYWGChYeSQ9RU22F2zc&sensor=false&libraries=places"></script>
+					    <script>
+						  function init()
+              {
+							  var pune = { lat: 18.5204303 , lng: 73.8567436999 };
+					      var defaultBounds = new google.maps.LatLngBounds(
+							           new google.maps.LatLng(18.441764,73.8331705),
+							           new google.maps.LatLng(18.570806,73.838060),
+							           new google.maps.LatLng(18.526706,73.705740),
+							           new google.maps.LatLng(18.441682,73.771413),
+							           new google.maps.LatLng(18.443299,73.989472),
+							           new google.maps.LatLng(18.582022,73.986420),
+							           new google.maps.LatLng(18.638679,73.848439)
+							  );
+							  var options = {
+									  location : pune,
+									  bounds : defaultBounds,
+									  componentRestrictions: {country:"in"}
+									  };
+							  var input = document.getElementById('form-demo-location');
+							  var autocomplete = new google.maps.places.Autocomplete(input,options);
+              }
+					    google.maps.event.addDomListener(window, 'load', init);
+					    </script>
+
+				      <!--SCRIPT FOR GETTING LONGITUTDE ,LATITUDE AND ZIP CODE -->
+				      <script type="text/javascript">
+					    function GetLocation()
+              {
+					      var geocoder = new google.maps.Geocoder();
+					      var address = document.getElementById("form-demo-location").value;
+					      geocoder.geocode({ 'address': address }, function (results, status) {
+						      if (status == google.maps.GeocoderStatus.OK)
+                  {
+						        var latitude2 = results[0].geometry.location.lat();
+						        var longitude2 = results[0].geometry.location.lng();
+						        //alert("Latitude: " + latitude + "\nLongitude: " + longitude);
+					          document.getElementById('setting_latitude').value = latitude2;
+						        document.getElementById('setting_longitude').value = longitude2;
+						        var address = results[0].address_components;
+						        var zipcode = address[address.length - 1].short_name;
+						        document.getElementById('setting_postal_code').value = zipcode;
+                  }
+						      else
+                  {
+						        alert("Request failed.")
+						      }
+					      });
+              };
+				      </script>
+              <div style="padding:0px;">
+                <table align="center">
+                  <tr>
+                    <td >Latitude</td>
+                    <td><input type="text" id="setting_latitude" onclick="GetLocation()" name="setting_latitude" class="location input-field col s8" required></td>
+		                <td >Longitude</td>
+		                <td><input type="text" id="setting_longitude" onclick="GetLocation()" name="setting_longitude" class="location input-field col s8" required></td>
+		                <td >Pincode</td>
+                    <td align="right">
+                      <input type="number" style ="-moz-appearance: textfield;" id="setting_postal_code" onclick="GetLocation()" name="setting_postal_code" class="location input-field col s7" required>
+                    </td>
+                  </tr>
+                 </table>
+               </div>
+
+               <div class="card-action">
+                 <center>
+                   <button class="btn waves-effect waves-light" type="submit" name="submit">Submit
+                     <i class="material-icons right">send</i>
+                   </button>
+                 </center>
+               </div>
+             </form>
+           </div>
+         </div>
+       </div>
+       <div class="card" style="width: 22%; height: 650px; float:right; margin:20px;" >
+         <div class="card-content black-text">
+           <div class="row" >
+             <span class="card-title black-text"><center> VOICE COMMANDS</center></span>
+           </div>
+           <div style=" margin:30px;">
+           <marquee direction="up" height="460px" scrollamount="4" class="green-text" behavior="slide"> <b>Reload Chart - <font color="black">Reloads The Pie Charts</font><br><br>
+                                                  Add Service - <font color="black">Redirects You To Add Service</font><br><br>
+                                                  Analysis - <font color="black">Redirects You to Analysis Page</font><br><br>
+                                                  Form / Entry Form - <font color="black">Redirects you Entry Form Page</font><br><br>
+                                                  Locate Hospitals - <font color="black">Locates all Pune Hospitals</font><br><br>
+                                                  Locate Firestations - <font color="black">Locates all Pune Fire Stations</font><br><br>
+                                                  Locate Polce Stations - <font color="black">Locates all Police stations</font><br><br>
+                                                  What Time is It ? - <font color="black">Speaks out the Current Day-Date-Time</font></b>
+          </marquee>
+         </div>
+         </div>
+       </div>
+       <div class="card" style="width: 22%; height: 270px; float:right; margin:20px;" >
+         <div class="card-content black-text">
+           <div class="row" >
+             <span class="card-title black-text"><center>Activate Voice Control</center></span>
+             <br>
+             <div class="row" >
+             <center>
+             <!--<span id="output" style="font-size:20px;color:red;align:middle;"></span><br>-->
+             <button onclick="initialize()" style="background-image: url('images/mic_assistant.jpg');  background-repeat: no-repeat;
+             background-position: 50% 50%;height: 112px;
+             width: 112px;border:none;"></button>
+
+             </center>
+
+         </div>
+           </div>
+         </div>
+       </div>
+     </div>
+   </div>
+
+</body>
+</html>

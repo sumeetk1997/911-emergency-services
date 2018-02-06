@@ -1,0 +1,20 @@
+INTRODUCTION:
+
+Developed a web application for the operator of emergency services. 
+
+Emergency service operators like ambulance, fire brigade or police stations can register themselves on the 911 website.They have to enter location, vehicle number etc which will be saved on 911 operator's database. Also implemented email verification via PHPmailer for emergency services operator verification.
+
+Person who is in distress would call the 911 operator and the operator would enter the details of the person like name, address, services required such as ambulance, police, fire brigade. A person can require multiple services at the same time. For example in case of fire, person would need ambulance and fire brigade at the same time. Multiple service deployment have also been implemented in the project. 
+
+The 911 operator will have the database of all the emergency service operators. Whatever service are required by the person in distress would be automatically allocated to that person. After the person had been served, the emergency services assigned to the person will be freed. Also implemented maps using google maps API through which the emergency service operator can see the real time map to person's address and time to reach there. 
+
+I have also implemented speech assistant for 911 operator using google API. Here operator doesnt have to type in all the details of the person. Operator can use speech recognition to fill in the details. You can see the the speech assistant in action in the demo video which is named as demo.ogv.
+
+Real time analysis is also done using graphs, histograms and piecharts where it would tell that how many peple have been served, how many of them are female or male, how many services are free or assigned etc.
+
+DEPENDENCIES:
+
+1) Mongodb 3.2.8 Enterprise
+2) Apache2(Webserver)
+3) PHP5-MongoDB Driver
+   

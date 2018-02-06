@@ -1,0 +1,278 @@
+<!--DONE.-->
+
+<?php
+  session_start();
+  if ($_SESSION['user']!='admin')
+  {
+    header('Location: index.php');
+  }
+
+  include 'header_admin.html';
+  include 'config.php';
+
+  if(isset($_POST['submit']))
+  {
+    $username = $_POST['username'];
+    $vehiclenumber = $_POST['vehiclenumber'];
+	  $email = $_POST['email'];
+	  $telephone = $_POST['telephone'];
+	  $password = $_POST['password'];
+	  $service = $_POST['servicetype'];
+	  $available = TRUE;
+	  $verified = FALSE;
+	  $latitude = $_POST['setting_latitude'];
+	  $longitude = $_POST['setting_longitude'];
+	  $pincode = $_POST['setting_postal_code'];
+    $verification_code = $telephone;
+    $collection = $db -> service;
+
+    $check_username = $collection->findOne(array("vehicles.username"=>$username));
+    $check_vehiclenumber = $collection->findOne(array("vehicles.vehiclenumber"=>$vehiclenumber));
+    $check_telephone = $collection->findOne(array("vehicles.telephone"=>$telephone));
+
+    if($check_username==NULL && $check_telephone == NULL && $check_vehiclenumber == NULL)
+    {
+  	  $vehicle_details = array(
+        "_id"=>new MongoId(),
+        "username" => $username,
+        "vehiclenumber" => $vehiclenumber ,
+        "email" => $email,
+        "service_area_pincode" => $pincode,
+        "telephone" => $telephone,
+        "password" => $password,
+        "available" => $available,
+        "verified" => $verified,
+        "coordinates"=>array("longitude"=>$longitude,
+        "latitude"=>$latitude));
+
+      require'PHPMailer/PHPMailerAutoload.php';
+      $mail = new PHPMailer;
+    	$mail->isSMTP();
+    	$mail->SMTPDebug = 0;                                  // Set mailer to use SMTP
+      $mail->Host = 'smtp.gmail.com';  		       // Specify main and backup SMTP servers
+      $mail->SMTPAuth = true;                                // Enable SMTP authentication
+      $mail->Username = 'testprojectit911@gmail.com';        // SMTP username
+      $mail->Password = 'testprojectit';                     // SMTP password
+    	$mail->SMTPSecure = 'tls';                             // Enable TLS encryption, `ssl` also accepted
+      $mail->Port = 587;                                     // TCP port to connect to
+      $mail->setFrom('testprojectit911@gmail.com', '911-no-reply-Verification-code');
+      $mail->addAddress($email, $name);     			// Add a recipient
+      $mail->addAddress($email);             			// Name is optional
+      $mail->addReplyTo('testprojectit911@gmail.com', 'NULL');
+      $mail->isHTML(true);                                    // Set email format to HTML
+      $mail->Subject = '911 Verification Code';
+      $mail->Body    = 'Your Username is : '.$username.'<br>'.'Your Password is : '.$password;
+
+      if(!$mail->send())
+      {
+      ?>
+      	<script src="js/sweetalert.min.js"></script>
+      	<link rel="stylesheet" type="text/css" href="css/sweetalert.css">
+      	<script>
+      		swal("Opps...","Please check your internet connection else try again later.","error");
+      	</script>
+      <?php
+      }
+
+      else
+      {
+      	$collection->update(array("description"=>$service),array('$push'=>array("vehicles" => $vehicle_details)),array('upsert'=>TRUE));
+      	?>
+      	<script src="js/sweetalert.min.js"></script>
+      	<link rel="stylesheet" type="text/css" href="css/sweetalert.css">
+      	<script>
+      		swal({title:"Good job!",text:"Login Credentials Have Been Send On the Filled in Email !",type:"success"},function(){window.location.href = 'addservice.php';});
+      	</script>
+      	<?php
+      }
+    }
+    else
+    {
+      if($check_username !=NULL)
+      {
+        $error = "Username";
+        $_POST['username'] = null;
+      }
+      else if($check_vehiclenumber !=NULL )
+      {
+        $error = "Vehicle Number";
+        $_POST['vehiclenumber'] = null;
+      }
+      else
+      {
+        $error = "Telephone Number";
+        $_POST['telephone'] = null;
+      }
+      ?>
+      <script src="js/sweetalert.min.js"></script>
+      <link rel="stylesheet" type="text/css" href="css/sweetalert.css">
+      <script>
+        swal({title:"Error!",text:"<?php echo $error; ?> already exists !",type:"error"});
+      </script>
+      <?php
+    }
+  }
+?>
+
+<div class="col l12">
+  <div class="row">
+		<div class="col l6 offset-l3">
+			<div class="card" >
+				<div class="card-content black-text">
+				  <div class="row">
+						<span class="card-title black-text">Service Registration</span>
+					</div>
+				  <div class="row">
+            <form class="col s12" action="addservice.php" method="POST">
+
+              <div class="row">
+                <div class="input-field col s6">
+                  <i class="material-icons prefix">account_circle</i>
+                  <input name="username" id="username" type="text"  length="10" value="<?php echo $_POST["username"]; ?>" required class="validate">
+                  <label for="username">User-Name</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s6">
+                  <i class="material-icons prefix">account_circle</i>
+                  <input name="vehiclenumber" id="vehiclenumber" type="text" placeholder="Number Without Spacing" length="10" value="<?php echo $_POST["vehiclenumber"]; ?>"class="validate">
+                  <label for="vehiclenumber">Vehicle Number</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s10">
+                  <i class="material-icons prefix">email</i>
+                  <input name="email" id="email" type="email" value="<?php echo $_POST["email"]; ?>" class="validate" required>
+                  <label for="email">Email</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s4">
+                  <i class="material-icons prefix">phone</i>
+                  <input name="telephone" id="telephone" type="tel"  length="10" value="<?php echo $_POST["telephone"]; ?>" class="validate" >
+                  <label for="telephone">Telephone</label>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s7">
+                  <i class="material-icons prefix">vpn_key</i>
+                  <input name="password" id="password" type="password" class="validate" >
+                  <label for="password">Password</label>
+                </div>
+              </div>
+
+              <div class="row" style="margin-left : 15px">
+                <input type="checkbox" id="test5" onchange="document.getElementById('password').type = this.checked ? 'text' : 'password'"/>
+						    <label for="test5">Show Password</label>
+              </div>
+
+              <div class="row">
+                <div class="input-field col s5" align="left">
+                  <select name="servicetype" id="servicetype" value="<?php echo $_POST["servicetype"]; ?>">
+                    <option value="1" disabled selected>Choose Your Service Type</option>
+                    <option value="ambulance">Ambulance</option>
+                    <option value="police">Police</option>
+                    <option value="firebrigade">Fire-Brigade</option>
+                  </select>
+                </div>
+              </div>
+
+              <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCDREgelhcPpigBLYWGChYeSQ9RU22F2zc&sensor=false&libraries=places"></script>
+
+              <!--Script for Intelligent Address Filling With Pune set as priority-->
+              <script>
+                function init()
+                {
+                  var pune = { lat: 18.5204303 , lng: 73.8567436999 };
+                  var defaultBounds = new google.maps.LatLngBounds(
+                    new google.maps.LatLng(18.441764,73.8331705),
+                    new google.maps.LatLng(18.570806,73.838060),
+                    new google.maps.LatLng(18.526706,73.705740),
+                    new google.maps.LatLng(18.441682,73.771413),
+                    new google.maps.LatLng(18.443299,73.989472),
+                    new google.maps.LatLng(18.582022,73.986420),
+                    new google.maps.LatLng(18.638679,73.848439)
+                  );
+  							  var options = {
+                    location : pune,
+  								  bounds : defaultBounds,
+  								  componentRestrictions: {country:"in"}
+  							  };
+  							  var input = document.getElementById('location');
+  							  var autocomplete = new google.maps.places.Autocomplete(input,options);
+                }
+  					    google.maps.event.addDomListener(window, 'load', init);
+              </script>
+
+              <div id="container" class = row>
+                <div class="input-field col s11">
+                  <i class="material-icons prefix">location_on</i>
+							    <input type="text" name="location" id="location" class="location">
+                </div>
+              </div>
+
+              <!--SCRIPT FOR GETTING LONGITUTDE ,LATITUDE AND ZIP CODE -->
+              <script type="text/javascript">
+                function GetLocation()
+                {
+                  var geocoder = new google.maps.Geocoder();
+                  var address = document.getElementById("location").value;
+                  geocoder.geocode({ 'address': address }, function (results, status)
+                  {
+                    if (status == google.maps.GeocoderStatus.OK)
+                    {
+                      var latitude = results[0].geometry.location.lat();
+                      var longitude = results[0].geometry.location.lng();
+                      var address = results[0].address_components;
+                      var zipcode = address[address.length - 1].short_name;
+                      document.getElementById('setting_latitude').value = latitude;
+                      document.getElementById('setting_longitude').value = longitude;
+                      document.getElementById('setting_postal_code').value = zipcode;
+                    }
+                 });
+               };
+             </script>
+
+             <div>
+               <table align="center">
+                 <tr>
+                   <td align="right">Latitude </td>
+                   <td><input type="text" id="setting_latitude" onclick="GetLocation()" name="setting_latitude" class="location input-field col s9" required></td>
+                   <td align="right">Longitude </td>
+                   <td><input type="text" id="setting_longitude" onclick="GetLocation()" name="setting_longitude" class="location input-field col s9" required></td>
+                   <td align="right">Pincode </td>
+                   <td align="right">
+                     <input type="number" style ="-moz-appearance: textfield;" id="setting_postal_code" onclick="GetLocation()" name="setting_postal_code" class="location input-field col s6" required>
+                   </td>
+                 </tr>
+               </table>
+             </div>
+
+             <div class="card-action">
+               <center>
+                 <button class="btn waves-effect waves-light" type="submit" name="submit">Submit
+                   <i class="material-icons right">send</i>
+                 </button>
+               </center>
+             </div>
+
+           </form>
+         </div>
+       </div>
+     </div>
+   </div>
+ </div>
+</div>
+</body>
+
+<script>
+  $(document).ready(function() {
+    $('select').material_select();
+  });
+</script>
+
+</html>
