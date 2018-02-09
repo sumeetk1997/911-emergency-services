@@ -12,6 +12,8 @@ I have also implemented speech assistant for 911 operator using google API. Here
 
 Real time analysis is also done using graphs, histograms and piecharts where it would tell that how many peple have been served, how many of them are female or male, how many services are free or assigned etc.
 
+username and password for admin of 911 operator are 'admin'.
+
 DEPENDENCIES:
 
 1) Mongodb 3.2.8 Enterprise
